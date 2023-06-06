@@ -12,7 +12,7 @@ from pdfminer3.layout import LAParams, LTTextBox
 from pdfminer3.pdfpage import PDFPage
 from pdfminer3.pdfinterp import PDFResourceManager
 from pdfminer3.pdfinterp import PDFPageInterpreter
-from pdfminer3.converter import TextConverter
+from pdfminer3.converter import TextConverter   
 import io, random
 from streamlit_tags import st_tags
 from PIL import Image
@@ -20,7 +20,7 @@ import pymysql
 from Courses import ds_course, web_course, android_course, ios_course, uiux_course, resume_videos, interview_videos
 import pafy
 import plotly.express as px
-import youtube_dl
+import sqlite3
 
 def fetch_yt_video(link):
     video = pafy.new(link)
@@ -81,19 +81,46 @@ def course_recommender(course_list):
     return rec_course
 
 
-connection = pymysql.connect(host='localhost', user='root', password='')
+
+# connection = pymysql.connect(host='localhost', user='root', password='')
+# cursor = connection.cursor()
+
+connection = sqlite3.connect('cv_analyser.db')
+
+# Create a cursor object to execute SQL queries
 cursor = connection.cursor()
+
 
 
 def insert_data(name, email, res_score, timestamp, no_of_pages, reco_field, cand_level, skills, recommended_skills,
                 courses):
     DB_table_name = 'user_data'
-    insert_sql = "insert into " + DB_table_name + """
-    values (0,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+    # insert_sql = "insert into " + DB_table_name + """ 
+    #  (ID, Name, Email_ID, resume_score, Timestamp, Page_no, Predicted_Field, User_level, Actual_skills, Recommended_skills, Recommended_courses)
+    #  values (0,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"""
+    # rec_values = (
+    # name, email, str(res_score), timestamp, str(no_of_pages), reco_field, cand_level, skills, recommended_skills,
+    # courses)
+    # print(insert_sql, rec_values)
+    # cursor.execute(insert_sql, rec_values)
+    
+    # Define the INSERT statement
+    insert_sql = '''
+    INSERT INTO user_data
+    (ID, Name, Email_ID, resume_score, Timestamp, Page_no, Predicted_Field, User_level, Actual_skills, Recommended_skills, Recommended_courses)
+    VALUES
+    (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    '''
+
+    # Define the data to be inserted
     rec_values = (
-    name, email, str(res_score), timestamp, str(no_of_pages), reco_field, cand_level, skills, recommended_skills,
-    courses)
+        name, email, str(res_score), timestamp, str(no_of_pages), reco_field, cand_level, skills, recommended_skills, courses
+    )
+
+    # Execute the INSERT statement with the data
     cursor.execute(insert_sql, rec_values)
+
+
     connection.commit()
 
 
@@ -114,15 +141,15 @@ def run():
     img = img.resize((250, 250))
     st.image(img)
 
-    # Create the DB
-    db_sql = """CREATE DATABASE IF NOT EXISTS SRA;"""
-    cursor.execute(db_sql)
-    connection.select_db("sra")
+    # # Create the DB
+    # db_sql = """CREATE DATABASE IF NOT EXISTS SRA;"""
+    # cursor.execute(db_sql)
+    # connection.select_db("sra")
 
     # Create table
     DB_table_name = 'user_data'
     table_sql = "CREATE TABLE IF NOT EXISTS " + DB_table_name + """
-                    (ID INT NOT NULL AUTO_INCREMENT,
+                    (ID INTEGER PRIMARY KEY AUTOINCREMENT,
                      Name varchar(100) NOT NULL,
                      Email_ID VARCHAR(50) NOT NULL,
                      resume_score VARCHAR(8) NOT NULL,
@@ -132,8 +159,8 @@ def run():
                      User_level VARCHAR(30) NOT NULL,
                      Actual_skills VARCHAR(300) NOT NULL,
                      Recommended_skills VARCHAR(300) NOT NULL,
-                     Recommended_courses VARCHAR(600) NOT NULL,
-                     PRIMARY KEY (ID));
+                     Recommended_courses VARCHAR(600) NOT NULL
+                    );
                     """
     cursor.execute(table_sql)
     if choice == 'Normal User':
@@ -396,8 +423,8 @@ def run():
         ad_user = st.text_input("Username")
         ad_password = st.text_input("Password", type='password')
         if st.button('Login'):
-            if ad_user == 'machine_learning_hub' and ad_password == 'mlhub123':
-                st.success("Welcome Kushal")
+            if ad_user == 'admin' and ad_password == 'admin':
+                st.success("Welcome Rakib")
                 # Display Data
                 cursor.execute('''SELECT*FROM user_data''')
                 data = cursor.fetchall()
